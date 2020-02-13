@@ -23,18 +23,19 @@ import unittest
 from torch.utils.data import DataLoader
 
 from dataset import LmdbDataset
-
+from torchvision import transforms
 
 class LmdbDatasetTest(unittest.TestCase):
     def setUp(self):
-        self.dataset = LmdbDataset("train_lmdb")
-        self.dataloader = DataLoader(self.dataset, batch_size=32, shuffle=True,
-                                     num_workers=4)
+        normalizeFunc = transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+        transf = transforms.Compose([transforms.ToPILImage(),transforms.Resize(256),transforms.CenterCrop(224),transforms.ToTensor(),normalizeFunc])
+        self.dataset = LmdbDataset("val.lmdb",transform=transf)
+        self.dataloader = DataLoader(self.dataset, batch_size=4, shuffle=True,num_workers=4)
 
     def testRead(self):
         for i, data in enumerate(self.dataloader):
             img, label = data
-            print(i, img.shape, label.shape)
+            print(i, img.shape, label)
 
 if __name__ == '__main__':
     unittest.main()

@@ -23,12 +23,12 @@ from torch.utils.data import Dataset
 
 from proto import tensor_pb2
 from proto import utils
-
+import torch
 
 class LmdbDataset(Dataset):
     """Lmdb dataset."""
 
-    def __init__(self, lmdb_path):
+    def __init__(self, lmdb_path,transform):
         super(LmdbDataset, self).__init__()
         import lmdb
         self.env = lmdb.open(lmdb_path, max_readers=1, readonly=True, lock=False,
@@ -37,6 +37,8 @@ class LmdbDataset(Dataset):
             self.length = txn.stat()['entries']
             self.keys = [key for key, _ in txn.cursor()]
 
+        self.transf = transform
+
     def __getitem__(self, index):
         with self.env.begin(write=False) as txn:
             serialized_str = txn.get(self.keys[index])
@@ -44,6 +46,10 @@ class LmdbDataset(Dataset):
         tensor_protos.ParseFromString(serialized_str)
         img = utils.tensor_to_numpy_array(tensor_protos.protos[0])
         label = utils.tensor_to_numpy_array(tensor_protos.protos[1])
+
+        img = self.transf(img)
+        label = torch.tensor(label)
+
         return img, label
 
     def __len__(self):

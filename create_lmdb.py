@@ -26,48 +26,57 @@ import numpy as np
 from proto import utils
 from proto import tensor_pb2
 
+import glob,os,cv2
 
-def create_db(output_file):
+def create_db(dataPath,output_file,classNb,imgPerClass):
     print(">>> Write database...")
-    LMDB_MAP_SIZE = 1 << 40   # MODIFY
+    LMDB_MAP_SIZE = 160000000000   # MODIFY
     print(LMDB_MAP_SIZE)
     env = lmdb.open(output_file, map_size=LMDB_MAP_SIZE)
+    #env = lmdb.open(output_file)
 
     checksum = 0
     with env.begin(write=True) as txn:
-        for j in range(0, 1024):
-            # MODIFY: add your own data reader / creator
-            width = 64
-            height = 32
-            img_data = np.random.rand(3, width, height).astype(np.float32)
-            label = np.asarray(j % 10)
+        classFolds = sorted(glob.glob(os.path.join(dataPath,"*/")))
+        for i in range(classNb):
+            imgPaths = sorted(glob.glob(os.path.join(classFolds[i],"*.JPEG")))
+            imgToRead = len(imgPaths) if imgPerClass is None else imgPerClass
+            for j in range(imgToRead):
+                # MODIFY: add your own data reader / creator
+                width = 64
+                height = 32
+                img_data = cv2.imread(imgPaths[j])
+                label = np.asarray(i)
 
-            # Create TensorProtos
-            tensor_protos = tensor_pb2.TensorProtos()
-            img_tensor = utils.numpy_array_to_tensor(img_data)
-            tensor_protos.protos.extend([img_tensor])
+                # Create TensorProtos
+                tensor_protos = tensor_pb2.TensorProtos()
+                img_tensor = utils.numpy_array_to_tensor(img_data)
+                tensor_protos.protos.extend([img_tensor])
 
-            label_tensor = utils.numpy_array_to_tensor(label)
-            tensor_protos.protos.extend([label_tensor])
-            txn.put(
-                '{}'.format(j).encode('ascii'),
-                tensor_protos.SerializeToString()
-            )
+                label_tensor = utils.numpy_array_to_tensor(label)
+                tensor_protos.protos.extend([label_tensor])
+                txn.put(
+                    '{}'.format(j).encode('ascii'),
+                    tensor_protos.SerializeToString()
+                )
 
-            if (j % 16 == 0):
-                print("Inserted {} rows".format(j))
+                if (j % 16 == 0):
+                    print("Inserted {} rows".format((j+1)+i*imgToRead))
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="LMDB creation"
     )
-    parser.add_argument("--output_file", type=str, default=None,
-                        help="Path to write the database to",
-                        required=True)
+    parser.add_argument("--data_path", type=str, default=None,help="Data path",required=True)
+    parser.add_argument("--output_file", type=str, default=None,help="Path to write the database to",required=True)
+    parser.add_argument("--class_nb", type=int, default=1000,help="The number of class")
+    parser.add_argument("--img_per_class", type=int, default=None,help="The number of image per class. Do not set this arg\
+                            if you want all to use all the images available.")
+
     args = parser.parse_args()
 
-    create_db(args.output_file)
+    create_db(args.data_path,args.output_file,args.class_nb,args.img_per_class)
 
 
 if __name__ == '__main__':
