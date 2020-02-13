@@ -28,7 +28,7 @@ from proto import tensor_pb2
 
 import glob,os,cv2
 
-def create_db(dataPath,output_file,classNb,imgPerClass):
+def create_db(dataPath,output_file,classNb,imgPerClass,logInterval):
     print(">>> Write database...")
     LMDB_MAP_SIZE = 160000000000   # MODIFY
     print(LMDB_MAP_SIZE)
@@ -60,7 +60,7 @@ def create_db(dataPath,output_file,classNb,imgPerClass):
                     tensor_protos.SerializeToString()
                 )
 
-                if (j % 16 == 0):
+                if (j % logInterval == 0):
                     print("Inserted {} rows".format((j+1)+i*imgToRead))
 
 
@@ -73,10 +73,11 @@ def main():
     parser.add_argument("--class_nb", type=int, default=1000,help="The number of class")
     parser.add_argument("--img_per_class", type=int, default=None,help="The number of image per class. Do not set this arg\
                             if you want all to use all the images available.")
+    parser.add_argument("--log_interval", type=int, default=100,help="The number of images to insert before to print.")
 
     args = parser.parse_args()
 
-    create_db(args.data_path,args.output_file,args.class_nb,args.img_per_class)
+    create_db(args.data_path,args.output_file,args.class_nb,args.img_per_class,args.log_interval)
 
 
 if __name__ == '__main__':
