@@ -56,7 +56,7 @@ def create_db(dataPath,output_file,classNb,imgPerClass,logInterval):
                 label_tensor = utils.numpy_array_to_tensor(label)
                 tensor_protos.protos.extend([label_tensor])
                 txn.put(
-                    '{}'.format(j).encode('ascii'),
+                    '{}'.format((j+1)+i*imgToRead).encode('ascii'),
                     tensor_protos.SerializeToString()
                 )
 
@@ -73,7 +73,7 @@ def main():
     parser.add_argument("--class_nb", type=int, default=1000,help="The number of class")
     parser.add_argument("--img_per_class", type=int, default=None,help="The number of image per class. Do not set this arg\
                             if you want all to use all the images available.")
-    parser.add_argument("--log_interval", type=int, default=100,help="The number of images to insert before to print.")
+    parser.add_argument("--log_interval", type=int, default=20,help="The number of images to insert before to print.")
 
     args = parser.parse_args()
 
